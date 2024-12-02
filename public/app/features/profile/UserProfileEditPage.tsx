@@ -4,8 +4,8 @@ import { useMount } from 'react-use';
 
 import { PluginExtensionComponent, PluginExtensionPoints } from '@grafana/data';
 import { selectors } from '@grafana/e2e-selectors';
-import { usePluginComponentExtensions } from '@grafana/runtime';
-import { Tab, TabsBar, TabContent, Stack } from '@grafana/ui';
+import { usePluginComponentExtensions, usePluginHooks } from '@grafana/runtime';
+import { Tab, TabsBar, TabContent, Stack, Button } from '@grafana/ui';
 import { Page } from 'app/core/components/Page/Page';
 import SharedPreferences from 'app/core/components/SharedPreferences/SharedPreferences';
 import { useQueryParams } from 'app/core/hooks/useQueryParams';
@@ -26,7 +26,7 @@ type TabInfo = {
   title: string;
 };
 
-export interface OwnProps {}
+export interface OwnProps { }
 
 function mapStateToProps(state: StoreState) {
   const userState = state.user;
@@ -78,6 +78,8 @@ export function UserProfileEditPage({
 
   const { extensions } = usePluginComponentExtensions({ extensionPointId: PluginExtensionPoints.UserProfileTab });
 
+  const { hooks } = usePluginHooks<(data: string) => void>({ extensionPointId: 'test' });
+
   const groupedExtensionComponents = extensions.reduce<Record<string, PluginExtensionComponent[]>>((acc, extension) => {
     const { title } = extension;
     if (acc[title]) {
@@ -104,6 +106,11 @@ export function UserProfileEditPage({
 
   const UserProfile = () => (
     <Stack direction="column" gap={2}>
+      {hooks.map((h, idx) => (
+        <Button key={`${idx}`} onClick={() => h.hook('foo')}>
+          {h.title}
+        </Button>
+      ))}
       <UserProfileEditForm updateProfile={updateUserProfile} isSavingUser={isUpdating} user={user} />
       <SharedPreferences resourceUri="user" preferenceType="user" />
       <Stack direction="column" gap={6}>

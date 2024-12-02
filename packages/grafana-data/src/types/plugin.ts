@@ -2,6 +2,7 @@ import { ComponentType } from 'react';
 
 import { KeyValue } from './data';
 import { IconName } from './icon';
+import { PluginExtensionAddedHookConfig } from './pluginExtensions';
 
 /** Describes plugins life cycle status */
 export enum PluginState {
@@ -130,6 +131,8 @@ export interface PluginExtensions {
   // The component extensions that the plugin registers
   addedComponents: ExtensionInfo[];
 
+  addedHooks: ExtensionInfo[];
+
   // The link extensions that the plugin registers
   addedLinks: ExtensionInfo[];
 
@@ -228,6 +231,8 @@ export interface PluginConfigPage<T extends PluginMeta> {
 }
 
 export class GrafanaPlugin<T extends PluginMeta = PluginMeta> {
+  private _addedHookConfigs: PluginExtensionAddedHookConfig[] = [];
+
   // Meta is filled in by the plugin loading system
   meta: T;
 
@@ -247,6 +252,16 @@ export class GrafanaPlugin<T extends PluginMeta = PluginMeta> {
     }
     this.configPages.push(tab);
     return this;
+  }
+
+  addHook<Signature>(addedHookConfig: PluginExtensionAddedHookConfig<Signature>) {
+    this._addedHookConfigs.push(addedHookConfig as PluginExtensionAddedHookConfig);
+
+    return this;
+  }
+
+  get addedHooksConfigs() {
+    return this._addedHookConfigs;
   }
 
   /**

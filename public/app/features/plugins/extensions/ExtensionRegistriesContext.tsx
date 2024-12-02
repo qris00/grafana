@@ -1,6 +1,7 @@
 import { PropsWithChildren, createContext, useContext } from 'react';
 
 import { AddedComponentsRegistry } from 'app/features/plugins/extensions/registry/AddedComponentsRegistry';
+import { AddedHooksRegistry } from 'app/features/plugins/extensions/registry/AddedHooksRegistry';
 import { AddedLinksRegistry } from 'app/features/plugins/extensions/registry/AddedLinksRegistry';
 import { ExposedComponentsRegistry } from 'app/features/plugins/extensions/registry/ExposedComponentsRegistry';
 
@@ -13,6 +14,7 @@ export interface ExtensionRegistriesContextType {
 // Using a different context for each registry to avoid unnecessary re-renders
 export const AddedLinksRegistryContext = createContext<AddedLinksRegistry | undefined>(undefined);
 export const AddedComponentsRegistryContext = createContext<AddedComponentsRegistry | undefined>(undefined);
+export const AddedHooksRegistryContext = createContext<AddedHooksRegistry | undefined>(undefined);
 export const ExposedComponentsRegistryContext = createContext<ExposedComponentsRegistry | undefined>(undefined);
 
 export function useAddedLinksRegistry(): AddedLinksRegistry {
@@ -27,6 +29,14 @@ export function useAddedComponentsRegistry(): AddedComponentsRegistry {
   const context = useContext(AddedComponentsRegistryContext);
   if (!context) {
     throw new Error('No `AddedComponentsRegistryContext` found.');
+  }
+  return context;
+}
+
+export function useAddedHooksRegistry(): AddedHooksRegistry {
+  const context = useContext(AddedHooksRegistryContext);
+  if (!context) {
+    throw new Error('No `AddedHooksRegistry` found.');
   }
   return context;
 }
@@ -46,9 +56,11 @@ export const ExtensionRegistriesProvider = ({
   return (
     <AddedLinksRegistryContext.Provider value={registries.addedLinksRegistry}>
       <AddedComponentsRegistryContext.Provider value={registries.addedComponentsRegistry}>
-        <ExposedComponentsRegistryContext.Provider value={registries.exposedComponentsRegistry}>
-          {children}
-        </ExposedComponentsRegistryContext.Provider>
+        <AddedHooksRegistryContext.Provider value={registries.addedHooksRegistry}>
+          <ExposedComponentsRegistryContext.Provider value={registries.exposedComponentsRegistry}>
+            {children}
+          </ExposedComponentsRegistryContext.Provider>
+        </AddedHooksRegistryContext.Provider>
       </AddedComponentsRegistryContext.Provider>
     </AddedLinksRegistryContext.Provider>
   );

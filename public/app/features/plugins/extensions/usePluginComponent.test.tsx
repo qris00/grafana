@@ -13,6 +13,7 @@ import { PluginExtensionRegistries } from './registry/types';
 import { useLoadAppPlugins } from './useLoadAppPlugins';
 import { usePluginComponent } from './usePluginComponent';
 import { isGrafanaDevMode, wrapWithPluginContext } from './utils';
+import { AddedHooksRegistry } from './registry/AddedHooksRegistry';
 
 jest.mock('./useLoadAppPlugins');
 jest.mock('app/features/plugins/pluginSettings', () => ({
@@ -78,6 +79,7 @@ describe('usePluginComponent()', () => {
     extensions: {
       addedLinks: [],
       addedComponents: [],
+      addedHooks: [],
       // This is necessary, so we can register exposed components to the registry during the tests
       // (Otherwise the registry would reject it in the imitated production mode)
       exposedComponents: [exposedComponentConfig],
@@ -90,6 +92,7 @@ describe('usePluginComponent()', () => {
       addedComponentsRegistry: new AddedComponentsRegistry(),
       exposedComponentsRegistry: new ExposedComponentsRegistry(),
       addedLinksRegistry: new AddedLinksRegistry(),
+      addedHooksRegistry: new AddedHooksRegistry(),
     };
     jest.mocked(useLoadAppPlugins).mockReturnValue({ isLoading: false });
     jest.mocked(isGrafanaDevMode).mockReturnValue(false);
@@ -122,6 +125,7 @@ describe('usePluginComponent()', () => {
         addedComponents: [],
         exposedComponents: [],
         extensionPoints: [],
+        addedHooks: [],
       },
       dependencies: {
         grafanaVersion: '8.0.0',

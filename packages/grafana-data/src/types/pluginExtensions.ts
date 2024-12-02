@@ -14,6 +14,7 @@ import { RawTimeRange, TimeZone } from './time';
 export enum PluginExtensionTypes {
   link = 'link',
   component = 'component',
+  hook = 'hook',
 }
 
 type PluginExtensionBase = {
@@ -36,7 +37,13 @@ export type PluginExtensionComponent<Props = {}> = PluginExtensionBase & {
   component: React.ComponentType<Props>;
 };
 
-export type PluginExtension = PluginExtensionLink | PluginExtensionComponent;
+export type PluginExtensionHook<Signature = () => void> = PluginExtensionBase & {
+  type: PluginExtensionTypes.hook;
+  title: string;
+  hook: Signature;
+};
+
+export type PluginExtension = PluginExtensionLink | PluginExtensionComponent | PluginExtensionHook;
 
 // Objects used for registering extensions (in app plugins)
 // --------------------------------------------------------
@@ -74,16 +81,27 @@ export type PluginExtensionAddedComponentConfig<Props = {}> = PluginExtensionCon
    */
   component: React.ComponentType<Props>;
 };
+export type PluginExtensionAddedHookConfig<Signature = (data: string) => null> = PluginExtensionConfigBase & {
+  /**
+   * The target extension points where the component will be added
+   */
+  targets: string | string[];
+
+  /**
+   * The hook to be executed
+   */
+  hook: Signature;
+};
 
 export type PluginAddedLinksConfigureFunc<Context extends object> = (context: Readonly<Context> | undefined) =>
   | Partial<{
-      title: string;
-      description: string;
-      path: string;
-      onClick: (event: React.MouseEvent | undefined, helpers: PluginExtensionEventHelpers<Context>) => void;
-      icon: IconName;
-      category: string;
-    }>
+    title: string;
+    description: string;
+    path: string;
+    onClick: (event: React.MouseEvent | undefined, helpers: PluginExtensionEventHelpers<Context>) => void;
+    icon: IconName;
+    category: string;
+  }>
   | undefined;
 
 export type PluginExtensionAddedLinkConfig<Context extends object = object> = PluginExtensionConfigBase & {
@@ -227,13 +245,13 @@ export type PluginExtensionLinkConfig<Context extends object = object> = {
   // (Optional) A function that can be used to configure the extension dynamically based on the extension point's context
   configure?: (context?: Readonly<Context>) =>
     | Partial<{
-        title: string;
-        description: string;
-        path: string;
-        onClick: (event: React.MouseEvent | undefined, helpers: PluginExtensionEventHelpers<Context>) => void;
-        icon: IconName;
-        category: string;
-      }>
+      title: string;
+      description: string;
+      path: string;
+      onClick: (event: React.MouseEvent | undefined, helpers: PluginExtensionEventHelpers<Context>) => void;
+      icon: IconName;
+      category: string;
+    }>
     | undefined;
 
   // (Optional) A icon that can be displayed in the ui for the extension option.
