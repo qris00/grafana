@@ -1225,8 +1225,7 @@ func (dr *DashboardServiceImpl) CleanUpDeletedDashboards(ctx context.Context) (i
 // -----------------------------------------------------------------------------------------
 
 func (dk8s *dashk8sHandler) getClient(ctx context.Context, orgID int64) (dynamic.ResourceInterface, bool) {
-	cfgg := dk8s.restConfigProvider.GetRestConfig(ctx)
-	dyn, err := dynamic.NewForConfig(cfgg)
+	dyn, err := dynamic.NewForConfig(dk8s.restConfigProvider.GetRestConfig(ctx))
 	if err != nil {
 		return nil, false
 	}
