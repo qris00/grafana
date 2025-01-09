@@ -34,6 +34,10 @@ import { getTrailStore } from './TrailStore/TrailStore';
 import { MetricDatasourceHelper } from './helpers/MetricDatasourceHelper';
 import { LOGS_METRIC, TRAILS_ROUTE, VAR_DATASOURCE_EXPR } from './shared';
 
+export function isAdHocVariable(variable: SceneVariable | null): variable is AdHocFiltersVariable {
+  return variable !== null && variable.state.type === 'adhoc';
+}
+
 export function getTrailFor(model: SceneObject): DataTrail {
   return sceneGraph.getAncestor(model, DataTrail);
 }
