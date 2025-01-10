@@ -1002,10 +1002,13 @@ const UnthemedLogs: React.FunctionComponent<Props> = (props: Props) => {
             </div>
           )}
           {visualisationType === 'logs' && logsPanelV2 && (
-            <LogList
-              app={CoreApp.Explore}
-              logs={dedupedRows}
-            />
+            <div data-testid="logRows" ref={logsContainerRef} className={styles.scrollableLogRows}>
+              <LogList
+                app={CoreApp.Explore}
+                logs={dedupedRows}
+                containerElement={logsContainerRef.current}
+              />
+            </div>
           )}
           {!loading && !hasData && !scanning && (
             <div className={styles.logRows}>
