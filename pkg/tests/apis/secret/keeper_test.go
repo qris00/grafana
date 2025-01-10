@@ -63,7 +63,7 @@ func TestIntegrationKeeper(t *testing.T) {
 	})
 
 	t.Run("creating a keeper returns it", func(t *testing.T) {
-		raw := mustGenerateKeeper(t, helper, nil)
+		raw := mustGenerateKeeper(t, helper, helper.Org1.Admin, nil)
 
 		keeper := new(secretv0alpha1.Keeper)
 		err := runtime.DefaultUnstructuredConverter.FromUnstructured(raw.Object, keeper)
@@ -155,7 +155,7 @@ func TestIntegrationKeeper(t *testing.T) {
 	})
 
 	t.Run("creating a keeper with a provider then changing the provider does not return an error", func(t *testing.T) {
-		rawAWS := mustGenerateKeeper(t, helper, nil)
+		rawAWS := mustGenerateKeeper(t, helper, helper.Org1.Admin, nil)
 
 		testDataKeeperGCP := rawAWS.DeepCopy()
 		testDataKeeperGCP.Object["spec"].(map[string]any)["aws"] = nil
@@ -220,6 +220,124 @@ func TestIntegrationKeeper(t *testing.T) {
 			require.NoError(t, err)
 			require.NotNil(t, rawList)
 			require.Empty(t, rawList.Items)
+		})
+	})
+
+	t.Run("creating keepers in multiple namespaces", func(t *testing.T) {
+		adminOrg1 := helper.Org1.Admin
+		adminOrgB := helper.OrgB.Admin
+
+		keeperOrg1 := mustGenerateKeeper(t, helper, adminOrg1, nil)
+		keeperOrgB := mustGenerateKeeper(t, helper, adminOrgB, nil)
+
+		clientOrg1 := helper.GetResourceClient(apis.ResourceClientArgs{User: adminOrg1, GVR: gvrKeepers})
+		clientOrgB := helper.GetResourceClient(apis.ResourceClientArgs{User: adminOrgB, GVR: gvrKeepers})
+
+		// Create
+		t.Run("creating a keeper with the same name as one from another namespace does not return an error", func(t *testing.T) {
+			// Org1 creating a keeper with the same name from OrgB.
+			testData := helper.LoadYAMLOrJSONFile("testdata/keeper-aws-generate.yaml")
+			testData.SetName(keeperOrgB.GetName())
+
+			raw, err := clientOrg1.Resource.Create(ctx, testData, metav1.CreateOptions{})
+			require.NoError(t, err)
+			require.NotNil(t, raw)
+
+			require.NoError(t, clientOrg1.Resource.Delete(ctx, raw.GetName(), metav1.DeleteOptions{}))
+
+			// OrgB creating a keeper with the same name from Org1.
+			testData = helper.LoadYAMLOrJSONFile("testdata/keeper-aws-generate.yaml")
+			testData.SetName(keeperOrg1.GetName())
+
+			raw, err = clientOrgB.Resource.Create(ctx, testData, metav1.CreateOptions{})
+			require.NoError(t, err)
+			require.NotNil(t, raw)
+
+			require.NoError(t, clientOrgB.Resource.Delete(ctx, raw.GetName(), metav1.DeleteOptions{}))
+		})
+
+		// Read
+		t.Run("fetching a keeper from another namespace returns not found", func(t *testing.T) {
+			var statusErr *apierrors.StatusError
+
+			// Org1 trying to fetch keeper from OrgB.
+			raw, err := clientOrg1.Resource.Get(ctx, keeperOrgB.GetName(), metav1.GetOptions{})
+			require.Error(t, err)
+			require.Nil(t, raw)
+			require.True(t, errors.As(err, &statusErr))
+			require.Equal(t, http.StatusNotFound, int(statusErr.Status().Code))
+
+			// OrgB trying to fetch keeper from Org1.
+			raw, err = clientOrgB.Resource.Get(ctx, keeperOrg1.GetName(), metav1.GetOptions{})
+			require.Error(t, err)
+			require.Nil(t, raw)
+			require.True(t, errors.As(err, &statusErr))
+			require.Equal(t, http.StatusNotFound, int(statusErr.Status().Code))
+		})
+
+		// Update
+		t.Run("updating a keeper from another namespace returns not found", func(t *testing.T) {
+			var statusErr *apierrors.StatusError
+
+			// Org1 trying to update securevalue from OrgB.
+			testData := helper.LoadYAMLOrJSONFile("testdata/keeper-aws-generate.yaml")
+			testData.SetName(keeperOrgB.GetName())
+			testData.Object["spec"].(map[string]any)["title"] = "New title"
+
+			raw, err := clientOrg1.Resource.Update(ctx, testData, metav1.UpdateOptions{})
+			require.Error(t, err)
+			require.Nil(t, raw)
+			require.True(t, errors.As(err, &statusErr))
+			require.Equal(t, http.StatusNotFound, int(statusErr.Status().Code))
+
+			// OrgB trying to update keeper from Org1.
+			testData = helper.LoadYAMLOrJSONFile("testdata/keeper-aws-generate.yaml")
+			testData.SetName(keeperOrg1.GetName())
+			testData.Object["spec"].(map[string]any)["title"] = "New title"
+
+			raw, err = clientOrgB.Resource.Update(ctx, testData, metav1.UpdateOptions{})
+			require.Error(t, err)
+			require.Nil(t, raw)
+			require.True(t, errors.As(err, &statusErr))
+			require.Equal(t, http.StatusNotFound, int(statusErr.Status().Code))
+		})
+
+		// Delete
+		t.Run("deleting a keeper from another namespace does not return an error but does not delete it", func(t *testing.T) {
+			// Org1 trying to delete keeper from OrgB.
+			err := clientOrg1.Resource.Delete(ctx, keeperOrgB.GetName(), metav1.DeleteOptions{})
+			require.NoError(t, err)
+
+			// Check that it still exists from the perspective of OrgB.
+			raw, err := clientOrgB.Resource.Get(ctx, keeperOrgB.GetName(), metav1.GetOptions{})
+			require.NoError(t, err)
+			require.NotNil(t, raw)
+
+			// OrgB trying to delete keeper from Org1.
+			err = clientOrgB.Resource.Delete(ctx, keeperOrg1.GetName(), metav1.DeleteOptions{})
+			require.NoError(t, err)
+
+			// Check that it still exists from the perspective of Org1.
+			raw, err = clientOrg1.Resource.Get(ctx, keeperOrg1.GetName(), metav1.GetOptions{})
+			require.NoError(t, err)
+			require.NotNil(t, raw)
+		})
+
+		// List
+		t.Run("listing keeper from a namespace does not return the ones from another namespace", func(t *testing.T) {
+			// Org1 listing keeper.
+			listOrg1, err := clientOrg1.Resource.List(ctx, metav1.ListOptions{})
+			require.NoError(t, err)
+			require.NotNil(t, listOrg1)
+			require.Len(t, listOrg1.Items, 1)
+			require.Equal(t, *keeperOrg1, listOrg1.Items[0])
+
+			// OrgB listing keeper.
+			listOrgB, err := clientOrgB.Resource.List(ctx, metav1.ListOptions{})
+			require.NoError(t, err)
+			require.NotNil(t, listOrgB)
+			require.Len(t, listOrgB.Items, 1)
+			require.Equal(t, *keeperOrgB, listOrgB.Items[0])
 		})
 	})
 }
