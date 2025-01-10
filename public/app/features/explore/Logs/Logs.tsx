@@ -55,6 +55,7 @@ import { createAndCopyShortLink, getLogsPermalinkRange } from 'app/core/utils/sh
 import { InfiniteScroll } from 'app/features/logs/components/InfiniteScroll';
 import { LogRows } from 'app/features/logs/components/LogRows';
 import { LogRowContextModal } from 'app/features/logs/components/log-context/LogRowContextModal';
+import { LogList } from 'app/features/logs/components/panel/LogList';
 import { LogLevelColor, dedupLogRows, filterLogLevels } from 'app/features/logs/logsModel';
 import { getLogLevel, getLogLevelFromKey, getLogLevelInfo } from 'app/features/logs/utils';
 import { LokiQueryDirection } from 'app/plugins/datasource/loki/dataquery.gen';
@@ -751,6 +752,8 @@ const UnthemedLogs: React.FunctionComponent<Props> = (props: Props) => {
     [logsQueries]
   );
 
+  const logsPanelV2 = true;
+
   return (
     <>
       {getRowContext && contextRow && (
@@ -941,7 +944,7 @@ const UnthemedLogs: React.FunctionComponent<Props> = (props: Props) => {
               />
             </div>
           )}
-          {visualisationType === 'logs' && (
+          {visualisationType === 'logs' && !logsPanelV2 && (
             <div
               className={config.featureToggles.logsInfiniteScrolling ? styles.scrollableLogRows : styles.logRows}
               data-testid="logRows"
@@ -997,6 +1000,12 @@ const UnthemedLogs: React.FunctionComponent<Props> = (props: Props) => {
                 </InfiniteScroll>
               )}
             </div>
+          )}
+          {visualisationType === 'logs' && logsPanelV2 && (
+            <LogList
+              app={CoreApp.Explore}
+              logs={dedupedRows}
+            />
           )}
           {!loading && !hasData && !scanning && (
             <div className={styles.logRows}>
